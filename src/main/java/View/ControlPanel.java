@@ -1,18 +1,29 @@
 package View;
 
 import Controller.Buttons.ControlButton;
+import Controller.Buttons.RadioListener;
+import Controller.TextFields.ElementTextFieldListener;
 import Controller.TextFields.parameterAction;
 import Model.ParameterManager;
 import Model.Simulation;
+import View.ViewUtil.ObservableString;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Observable;
+import java.util.Set;
 
 public class ControlPanel extends JPanel {
     private Simulation model;
     private ParameterManager parameterManager;
+    private ObservableString selected_element = new ObservableString();
 
+    /**
+     * JPanel which holds the control buttons for the simulation
+     * @param model The simualtion to be controlled
+     */
     public ControlPanel(Simulation model){
         this.model = model;
         parameterManager = model.getParameter_manager();
@@ -80,9 +91,63 @@ public class ControlPanel extends JPanel {
         }
     }
 
+    /**
+     * Creates the paramaterers tuneable for each type.
+     * The radiobutton will allow a user to pick a type, the textfields will set the value for these
+     * @param c
+     */
     public void addTypeParameters(GridBagConstraints c){
+        Set<JTextField> element_fields = new HashSet<>();
+
+
+        ButtonGroup bg = new ButtonGroup();
+        for (String type: parameterManager.getTypes()) {
+            if(type != "Model"){
+                JRadioButton radioButton = new JRadioButton(type);
+                radioButton.setActionCommand(type);
+                radioButton.addActionListener(new RadioListener(selected_element));
+                this.add(radioButton, c);
+
+                if(c.gridx == 0){
+                    c.gridx = 1;
+                }else{
+                    c.gridy++;
+                    c.gridx = 0;
+                }
+
+                if(type == "Tree"){
+                    radioButton.setSelected(true);
+                    selected_element.setString("Tree");
+                }
+
+                bg.add(radioButton);
+
+            }
+        }
+
+        if(c.gridx == 1){
+            c.gridx = 0;
+            c.gridy++;
+        }
+
+        //Pull the parameters to be set from the parameterManager
+        for (String parameter :parameterManager.getParameterSet("Tree").keySet()){
+
+            JTextField t = new JTextField(String.valueOf(parameterManager.getParameter(selected_element.getString(), parameter)));
+            t.addActionListener(new ElementTextFieldListener(t, parameterManager, selected_element, parameter));
+            element_fields.add(t);
+            JLabel l = new JLabel(parameter);
+            this.add(l, c);
+            c.gridx = 1;
+            this.add(t, c);
+            c.gridx = 0;
+            c.gridy++;
+        }
+
 
 
 
     }
+
+
 }

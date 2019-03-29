@@ -3,10 +3,7 @@ package Model;
 import Model.Elements.*;
 
 import java.io.Serializable;
-import java.util.AbstractMap;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Observable;
+import java.util.*;
 
 public class ParameterManager extends Observable implements Serializable {
 
@@ -30,7 +27,7 @@ public class ParameterManager extends Observable implements Serializable {
 
     /**
      * Load the default values from the elements by creating a dummy element and getting it's parameters.
-     * Afte this the elements can disappear
+     * After this the elements can disappear
      */
     public void fetchElementParameters(){
         Map<String, Float> grassMap = new Grass(0,0, this).getParameters();
@@ -110,11 +107,21 @@ public class ParameterManager extends Observable implements Serializable {
     public int getHeight(){
         return Parameters_map.get("Model").get("Height").intValue();
     }
-    //TODO! Add elements as observers and find some way to update them  DONE
-    //TODO! Ensure that new elements are set according to ParameterManager if ParameterManager exists DONE
-    //TODO! Fetch values from simulation    DONE
-    //TODO! Pass ParameterManager to ControlPanel so that it can send updates to this
+
+    public float getParameter(String type, String parameter){
+        if(Parameters_map == null){
+            return -0.0f;
+        }
+        if(Parameters_map.get(type) == null){
+            System.out.println("ERROR NO PARAMETERS FOR TYPE: " + type);
+            return -0.0f;
+        }
+        return Parameters_map.get(type).get(parameter);
+    }
+
+    public Set<String> getTypes(){
+        return Parameters_map.keySet();
+    }
     //TODO! Turn float into Integer
-    //TODO! Consider separating Fuel into FUel and Starting_fuel
     //TODO! Fix reset to return to seed
 }

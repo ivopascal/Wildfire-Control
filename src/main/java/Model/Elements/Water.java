@@ -7,7 +7,7 @@ import java.util.Map;
 
 public class Water extends Element
 {
-    private static final Color DARK_BLUE = new Color(0,0,204);
+    private static final Color DARK_BLUE = new Color(0,0,125);
     public Water(int x, int y, ParameterManager parameterManager)
     {
         this.x = x;
@@ -22,4 +22,5 @@ public class Water extends Element
         this.type = "Water";
         this.color = DARK_BLUE;
     }
+
 }

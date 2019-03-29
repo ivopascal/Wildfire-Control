@@ -5,10 +5,9 @@ import Model.ParameterManager;
 import java.awt.Color;
 import java.util.Map;
 
-public class House extends Element
+public class StaticFire extends Element
 {
-//    private static final Color LIGHT_BROWN = new Color(153,102,0);
-    public House(int x, int y, ParameterManager parameterManager)
+    public StaticFire(int x, int y, ParameterManager parameterManager)
     {
         this.x = x;
         this.y = y;
@@ -19,14 +18,17 @@ public class House extends Element
 
     public void initializeParameters()
     {
-        this.type = "House";
-        this.r = 1;
+        this.type = "StaticFire";
+        this.r = 0;
         this.isBurnable = true;
-        this.color = color.WHITE;
-        this.burnIntensity = 5;
+        this.color = Color.CYAN;
+        this.burnIntensity = 10;
         this.ignitionThreshold = 1;
-        this.fuel = starting_fuel = 25;
+        this.fuel = starting_fuel = 999999999;
         this.moveSpeed = 1;
+        this.clearCost = 1;
+        //This makes it burn from the start
+        this.setTemperature(10.0);
+        this.setBurning();
     }
-
 }
