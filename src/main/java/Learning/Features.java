@@ -10,14 +10,17 @@ import burlap.mdp.core.state.annotations.DeepCopyState;
 import cern.colt.list.adapter.ObjectListAdapter;
 import org.apache.commons.lang3.ArrayUtils;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
+import java.lang.Math;
+
 @DeepCopyState
-public class Features implements MutableState {
+public class Features implements MutableState, Serializable {
 
     public double previousAction = -1;
 
@@ -93,6 +96,7 @@ public class Features implements MutableState {
 
         List<List<Element>> cells = model.getAllCells();
         List<Double> output = new ArrayList<>();
+        double[] arrayTriples = {0,0,0};
 
         int width = model.getParameter_manager().getWidth();
         int height = model.getParameter_manager().getHeight();
@@ -112,14 +116,16 @@ public class Features implements MutableState {
          */
         for (int i = 0; i < downSampleHeight ; i+= 1){
             for (int j = 0; j < downSampleWidth; j+=1) {
-                output.add ( checkIfSquareBurnable (widthN, heightN, j*widthN, height-1 -(i*heightN), cells, model) );
+                arrayTriples = checkIfSquareBurnable (widthN, heightN, j*widthN, height-1 -(i*heightN), cells, model);
+                for (int k = 0; k < 3; k++){ output.add(arrayTriples[k]); }
                 saveJ = j;
             }
             /** A row has been checked (left->right). If there are extra tiles on the right that did not fit in a square, a square with
              * smaller width (=tilesExtraRight) is evaluated to not go over bounds but still save the info from the map.
              */
             if (tilesExtraRight > 0 ) {
-                output.add ( checkIfSquareBurnable(tilesExtraRight, height, saveJ * widthN, height-1 -(i*heightN), cells, model) );
+                arrayTriples = checkIfSquareBurnable(tilesExtraRight, height, saveJ * widthN, height-1 -(i*heightN), cells, model);
+                for (int k = 0; k < 3; k++){ output.add(arrayTriples[k]); }
             }
         }
         /** All rows (and possible extra tiles on the right) are checked now. It could be that the lowest row with height
@@ -127,14 +133,16 @@ public class Features implements MutableState {
          */
         if (tilesExtraBelow > 0) {
             for (int i = 0; i < downSampleHeight ; i += 1){
-                output.add ( checkIfSquareBurnable (widthN, tilesExtraBelow, i * widthN,  height - downSampleHeight * heightN, cells, model) );
+                arrayTriples = checkIfSquareBurnable (widthN, tilesExtraBelow, i * widthN,  height - downSampleHeight * heightN, cells, model);
+                for (int k = 0; k < 3; k++){ output.add(arrayTriples[k]); }
             }
         }
         /** Finally it could be the case that all rows (and possible extra tiles to the right of them) + the last row on the
          * bottom are checked but there are still unchecked tiles left in the lower right corner. Add those to the list
          */
         if (tilesExtraRight > 0 && tilesExtraBelow > 0) {
-            output.add ( checkIfSquareBurnable(tilesExtraRight, tilesExtraBelow, downSampleWidth * widthN, height-1 - downSampleHeight * heightN, cells, model) );
+            arrayTriples = checkIfSquareBurnable(tilesExtraRight, tilesExtraBelow, downSampleWidth * widthN, height-1 - downSampleHeight * heightN, cells, model);
+            for (int k = 0; k < 3; k++){ output.add(arrayTriples[k]); }
         }
 
         // Add the downSampledWidth & downSampledHeight to end of list
@@ -143,7 +151,14 @@ public class Features implements MutableState {
 
         // If a printed array is wanted, print the array
         double [] doubleArray = doubleListToArray(output);
-        if (print == 1){  printArray(doubleArray); }
+        if (print == 1) {
+            printArray(doubleArray);
+        } else if (print == 2){
+            printMap(doubleArray);
+        } else if (print == 3){
+            printArray(doubleArray);
+            printMap(doubleArray);
+        }
 
         return doubleArray;
     }
@@ -161,50 +176,324 @@ public class Features implements MutableState {
      * @return
      */
 
-    public double checkIfSquareBurnable(int width, int height, int x, int y, List<List<Element>> cells, Simulation model){
+    public double[] checkIfSquareBurnable(int width, int height, int x, int y, List<List<Element>> cells, Simulation model){
 
+        //TODO: Add parameter isBurned to 'Element' , to retrieve more accurate info map
+
+        int agent = 0;
         int burnable = 0;
         int burning = 0;
+        double [] doubleArray = {0,0,0};
+
         // Loop over the square starting at (x,y) for (width,height)
         for (int i = x; i < (x + width) ; i++) {
             for (int j = y; j < (y + height) ; j++) {
 
                 Element cell = cells.get(i).get(y);
-                if (model.getAgents().get(0).getX() == i && model.getAgents().get(0).getY() == j) {
-                    return 3.0;
+                if (model.getAgents().get(0).getX() == i && model.getAgents().get(0).getY() == j && agent == 0) { // ensure value is binary
+                    agent=1;
                 }
-                if (cell.isBurning() ){
-                    burning++;
+                if (cell.isBurning() && burning == 0){ // ensure value is binary
+                    burning=1;
                 }
-                if (cell.isBurnable()) {
-                    burnable++;
+                if (cell.isBurnable() && burnable == 0) { // ensure value is binary
+                    burnable=1;
                 }
             }
         }
-        if (burning > 0) {
-            return 2.0;
-        }
-        if (burnable > 0) {
-            return 1.0;
-        } else {
-            return 0.0;
-        }
+
+        doubleArray[0] = (double)agent;
+        doubleArray[1] = (double)burning;
+        doubleArray[2] = (double)burnable;
+        return doubleArray;
+
     }
 
     private static void printArray(double [] doubleArray) {
 
         int downSampleWidth = (int)doubleArray[doubleArray.length-2];
         int newline = 0;
+        int separate = 0;
 
         for(int i=0; i< doubleArray.length-2; i++){
-            if (newline == downSampleWidth) {
+            if (newline == 3*downSampleWidth) {
                 System.out.printf("%n");
                 newline = 0;
+                separate = 0;
+            } else if (separate == 3){ // else if so no separates on right side map
+                System.out.printf("| ");
+                separate = 0;
             }
             System.out.print(doubleArray[i] + " ");
             newline++;
+            separate++;
         }
-        System.out.printf("%n");
+        System.out.printf("%n%n");
+
+    }
+
+    private static void printMap(double [] doubleArray) {
+
+        int downSampleWidth = (int)doubleArray[doubleArray.length-2];
+        int newline = 0;
+        int step = 1;
+        int print = 0;
+
+        for(int i=0; i< doubleArray.length-2; i++){
+
+            if (newline == 3*downSampleWidth) {
+                System.out.printf("%n");
+                newline = 0;
+            }
+            if (step == 1 && doubleArray[i] == 1){ // first value from triplets = agent
+                System.out.print("A  ");
+                print = 1;
+            }
+            else if (step == 2 && doubleArray[i] == 1 && print != 1){ // second value from triplets = burning
+                System.out.print("F  ");
+                print = 1;
+            }
+            else if (step == 3 && doubleArray[i] == 1 && print != 1) { // third value from triplets = burnable
+                System.out.print(".  ");
+            }
+            if (step == 3){ // else if so no separates on right side map
+                step = 0;
+                print = 0;
+            }
+            newline++;
+            step++;
+        }
+        System.out.printf("%n%n");
+
+    }
+
+    /** Wind direction
+     * For simplification we only take into account wind directions parallel to movement subgoals (not (near) orthogonal)
+     *
+     * Wind: vectorX, vectorY, windspeed
+     * NN, SS: only vectorY of interest (since subgoal 'moves' only vertical)
+     * EE, WW: only vectorX of interest ((since subgoal 'moves' only horizontal)
+     * Simplification:
+     * NE, SW, only vectorX & vectorY of interest if both positive OR negative (since vector wind otherwise orthogonal on movevement)
+     * SE, NW: only vectorX & vectorY of interest if : positive AND negative (since vector wind otherwise orthogonal on movevement)
+     *
+     * NOT FINISHED
+     *
+     * Two ways to implement this:
+     * 1) For every wind direction different ( I think most efficient), presented beneath
+     * 2) One general solution
+     *
+     * TODO: think about >= 0
+     */
+
+    public double windRelativeToSubgoal(Simulation model, int windVectorX, int windVectorY, int windSpeed, String compassDirection){
+
+        double wind = 0;
+
+        switch (compassDirection) {
+            case "NN":
+                wind = windVectorY * windSpeed;
+                break;
+            case "SS":
+                wind = -windVectorY * windSpeed; // - : since up is towards center
+                break;
+            case "EE":
+                wind = windVectorX * windSpeed;
+                break;
+            case "WW":
+                wind = -windVectorX * windSpeed; // - : since right is towards center
+                break;
+            case "NE":
+                if ( windVectorX >= 0 && windVectorY >= 0 ){ // if both positive the pythogoras can stay positive
+                    double c = ( (double)windVectorX*(double)windVectorX)+( (double)windVectorY* (double)windVectorY);
+                    wind = Math.sqrt(c) * windSpeed;
+                }
+                if ( windVectorX < 0 && windVectorY < 0 ){ // if both negative the pythogoras needs to be made stay negative
+                    double c = ( (double)windVectorX*(double)windVectorX)+( (double)windVectorY* (double)windVectorY);
+                    wind = -Math.sqrt(c) * windSpeed;
+                }
+                break;
+            case "SW":
+                if ( windVectorX >= 0 && windVectorY >= 0 ){
+                    double c = ( (double)windVectorX*(double)windVectorX)+( (double)windVectorY* (double)windVectorY);
+                    wind = -Math.sqrt(c) * windSpeed; // - : since right-up is towards center
+                }
+                if ( windVectorX < 0 && windVectorY < 0 ){
+                    double c = ( (double)windVectorX*(double)windVectorX)+( (double)windVectorY* (double)windVectorY);
+                    wind = Math.sqrt(c) * windSpeed; // no - : since left-down is away from center
+                }
+                break;
+            case "SE":
+                if ( windVectorX >= 0 && windVectorY < 0 ){
+                    double c = ( (double)windVectorX*(double)windVectorX)+( (double)windVectorY* (double)windVectorY);
+                    wind = Math.sqrt(c) * windSpeed; // + : since right-down is away from center
+                }
+                if ( windVectorX < 0 && windVectorY >= 0 ) {
+                    double c = ((double) windVectorX * (double) windVectorX) + ((double) windVectorY * (double) windVectorY);
+                    wind = -Math.sqrt(c) * windSpeed; // - : since left-up is towards from center
+                }
+                break;
+            case "NW":
+                if ( windVectorX < 0 && windVectorY >= 0 ){
+                    double c = ( (double)windVectorX*(double)windVectorX)+( (double)windVectorY* (double)windVectorY);
+                    wind = Math.sqrt(c) * windSpeed; // + : since right-down is away from center
+                }
+                if ( windVectorX >= 0 && windVectorY < 0 ) {
+                    double c = ((double) windVectorX * (double) windVectorX) + ((double) windVectorY * (double) windVectorY);
+                    wind = -Math.sqrt(c) * windSpeed; // - : since left-up is towards from center
+                }
+                break;
+        }
+        return wind; // can be the case that wind is 0, if the wind is orthogonal on point
+    }
+
+
+    /** Distance to center (from subgoal)
+     * Needs the coordinates of the point
+     */
+    public double distanceToCenterFire(Simulation model, int x, int y){
+        double distance;
+        double[] centerFireAndMinMax = {0,0,0,0,0,0}; // 0 = centerX, 1 = centerY, 2 = minX, 3 = maxX, 4 = minY, 5 = maxY
+        centerFireAndMinMax = locationCenterFireAndMinMax(model);
+
+        double deltaX;
+        double deltaY;
+
+        deltaX = Math.abs((double)x - centerFireAndMinMax[0]);
+        deltaY = Math.abs((double)y - centerFireAndMinMax[1]);
+
+        // Given that deltaX or deltaY is always positive
+        if (deltaX == 0){
+            distance = deltaY;
+        }
+        if (deltaY == 0){
+            distance = deltaX;
+        }
+        else { // Use pythogaros
+            double c = (deltaX*deltaX)+(deltaY*deltaY);
+            distance = Math.sqrt(c);
+        }
+        System.out.print(distance + "%n");
+        return distance;
+    }
+
+    /** Distance fireline to center
+     * => A Feature needed for the NN to determine the placement of the subgoal
+     * 1) Center of the fire is calculated
+     * 2) minX, maxX, minY, maxY are determined
+     * 3) Depending on the compass direction the subgoal is placed the distance is calculated
+     * Compass directions:
+     *              NN
+     *         NW        NE
+     *     WW                EE
+     *         SW        SE
+     *              SS
+     */
+    public double distanceFromCenterToFireline(Simulation model, String compassDirection){
+        double distanceCenterToFire = 0;
+        double[] centerFireAndMinMax = {0,0,0,0,0,0}; // 0 = centerX, 1 = centerY, 2 = minX, 3 = maxX, 4 = minY, 5 = maxY
+        centerFireAndMinMax = locationCenterFireAndMinMax(model);
+
+        //System.out.println(Arrays.toString(centerFireAndMinMax));
+
+        double centerX = centerFireAndMinMax[0];
+        double centerY = centerFireAndMinMax[1];
+        double minX = centerFireAndMinMax[2];
+        double maxX = centerFireAndMinMax[3];
+        double minY = centerFireAndMinMax[4];
+        double maxY = centerFireAndMinMax[5];
+
+        switch (compassDirection) {
+            case "NN":
+                distanceCenterToFire = maxY - centerY;                break;
+            case "NE":
+                // Assumption: distance spreads evenly in norhtern direction
+                distanceCenterToFire = maxY - centerY;                break;
+            case "EE":
+                distanceCenterToFire = maxX - centerX;                break;
+            case "SE":
+                // Assumption: distance spreads evenly in southern direction
+                distanceCenterToFire = centerY - minY;                break;
+            case "SS":
+                distanceCenterToFire = centerY - minY;                break;
+            case "SW":
+                // Assumption: distance spreads evenly in southern direction
+                distanceCenterToFire = centerY - minY;                break;
+            case "WW":
+                distanceCenterToFire = centerX - minX;                break;
+            case "NW":
+                // Assumption: distance spreads evenly in norhtern direction
+                distanceCenterToFire = maxY - centerY;                break;
+        }
+
+        //System.out.print(distanceCenterToFire + "%n");
+        return distanceCenterToFire;
+
+    }
+
+    /** Helper function for distanceCenterFireline
+     * - Goes over whole map and stores all cells on fire. Calculates meanX and meanY as center fire
+     * - Simultaneously stores minX, maxX, minY, maxY
+     *
+     * Also returns values if no fire
+     */
+    public double[] locationCenterFireAndMinMax (Simulation model){
+        // blablablablablablablabla
+        double width = model.getParameter_manager().getWidth();
+        double height = model.getParameter_manager().getHeight();
+        List<List<Element>> cells = model.getAllCells();
+
+        double centerX = 0, centerY = 0, minX = 0, maxX = 0, minY = 0, maxY = 0;
+        double numberOfTilesBurning = 0;
+
+        int firstTile = 0;
+
+        // Loop over the grid
+        for (double i = 0; i < width ; i++) {
+            for (double j = 0; j < height ; j++) {
+
+                Element cell = cells.get((int)i).get((int)j);
+
+                if ( cell.isBurning() ){
+                    numberOfTilesBurning++;
+                    centerX += i; // add x location burning tile, later divide by total tiles
+                    centerY += j; // add y location burning tile, later divide by total tiles
+
+                    if (firstTile == 0){
+                        minX = i;
+                        minY = j;
+                        firstTile = 1;
+                    }
+                    if (i < minX ){
+                        minX = i;
+                    }
+                    if (i > maxX) { // always true first time
+                        maxX = i;
+                    }
+                    if (j < minY ) {
+                        minY = j;
+                    }
+                    if (j > maxY) { // always true first time
+                        maxY = j;
+                    }
+
+
+
+                }
+
+            }
+        }
+        centerX = centerX/numberOfTilesBurning;
+        centerY = centerY/numberOfTilesBurning;
+        double[] locationCenterFireAndMinMax = {0,0,0,0,0,0};
+        locationCenterFireAndMinMax[0] = centerX;
+        locationCenterFireAndMinMax[1] = centerY;
+        locationCenterFireAndMinMax[2] = minX;
+        locationCenterFireAndMinMax[3] = maxX;
+        locationCenterFireAndMinMax[4] = minY;
+        locationCenterFireAndMinMax[5] = maxY;
+
+        return locationCenterFireAndMinMax;
     }
 
     /**
@@ -254,7 +543,13 @@ public class Features implements MutableState {
     }
 
     public double[] previousAction(){
-        double[] out = {previousAction};
+        double val;
+        if(previousAction == 4){
+            val = 1;
+        }else{
+            val = 0;
+        }
+        double[] out = {val};//TODO
         return out;
     }
 
@@ -334,6 +629,9 @@ public class Features implements MutableState {
      */
     public boolean isClearLine (Simulation model, int c, boolean vertical){
         if(vertical){
+            if(c < 0 || c >= model.getParameter_manager().getWidth()){
+                return false;
+            }
             int y = 0;
             while(y < model.getParameter_manager().getHeight()){
                 if(model.getElementAt(c, y).isBurning()){
@@ -343,6 +641,9 @@ public class Features implements MutableState {
             }
             return true;
         }else{
+            if(c < 0 || c >= model.getParameter_manager().getHeight()){
+                return false;
+            }
             int x = 0;
             while(x < model.getParameter_manager().getWidth()){
                 if(model.getElementAt(x, c).isBurning()){
@@ -355,7 +656,7 @@ public class Features implements MutableState {
     }
 
     /**
-     * Returns two points which reprsent a rectangle which matches the fire (fire can be on border of this rectangle
+     * Returns two points which represent a rectangle which matches the fire (fire can be on border of this rectangle
      * @param model
      * @return
      */

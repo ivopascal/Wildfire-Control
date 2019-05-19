@@ -24,7 +24,7 @@ public class Fitness implements Serializable {
 		private Simulation model;
 		private int maxDepth;
 
-		SPE_Measure(Simulation model) {
+		public SPE_Measure(Simulation model) {
 			this.model = model;
 		}
 
@@ -150,10 +150,13 @@ public class Fitness implements Serializable {
 
 	public int totalFuelBurnt(Simulation model) {
 		int value = model.getTotalFuel() - model.getTotalFuelBurnt();
+		return -value;
+		/*
 		if (value > 0) {
 			return value;
 		} else {
 			return 0;
 		}
+		*/
 	}
 }

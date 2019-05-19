@@ -18,7 +18,7 @@ import java.util.*;
 import java.util.List;
 
 
-public class Cosyne implements RLController {
+public class GA implements RLController {
 
 
     MultiLayerPerceptron current_mlp;
@@ -27,7 +27,7 @@ public class Cosyne implements RLController {
     int generation;
     int best = -1;
     List<Integer> mlpSize;
-    public Cosyne(){
+    public GA(){
 
         features = new Features();
 
@@ -39,7 +39,7 @@ public class Cosyne implements RLController {
         int population = 250;    //Change this to change number of MLPs
 
         hiddenLayers.add(20);//Add more hidden layers as you see fit
-        float permutation_chance = 0.01f;   //Chance that a gene is random rather than inhereted
+        float permutation_chance = 0.05f;   //Chance that a gene is random rather than inhereted
 
 
         List<Map.Entry<MultiLayerPerceptron, Double>> mlpList = new ArrayList<>();
@@ -166,9 +166,14 @@ public class Cosyne implements RLController {
             current_model.start();
 
 
+
             Fitness.SPE_Measure StraightPaths = fitness.new SPE_Measure(current_model);
             entry.setValue(StraightPaths.getFitness(2));
             scores[i] = StraightPaths.getFitness(2);
+
+
+            //entry.setValue(fitness.totalFuelBurnt(current_model));
+            //scores[i] = fitness.totalFuelBurnt(current_model);
 
             //If it's a new best run the simulation again and take a screenshot
             if(best != -1 && scores[i] < best){
@@ -236,17 +241,15 @@ public class Cosyne implements RLController {
                 //For each neuron
                 for(int in = 0; in < neurons; in++){
 
-                    //IntelliJ refers to the jar as source, which is not up to date with the compiled source at mvn
-                    //Therefore IntelliJ expects list, but the compiler knows it's arrays
-                    int nconnections = child.getLayerAt(il).getNeuronAt(in).getInputConnections().length;
+                    int nconnections = child.getLayerAt(il).getNeuronAt(in).getInputConnections().size();
                     //For each (inbound) connection to a neuron
                     for(int ic = 0; ic < nconnections; ic++){
 
                         int origin_rate = rng.nextInt(5);
                         //Take some random ratio between the two parents
                         double weight =
-                                parent_1.getLayerAt(il).getNeuronAt(in).getInputConnections()[ic].getWeight().value * origin_rate
-                                + parent_2.getLayerAt(il).getNeuronAt(in).getInputConnections()[ic].getWeight().value * (1-origin_rate);
+                                parent_1.getLayerAt(il).getNeuronAt(in).getInputConnections().get(ic).getWeight().value * origin_rate
+                                + parent_2.getLayerAt(il).getNeuronAt(in).getInputConnections().get(ic).getWeight().value * (1-origin_rate);
 
 
                         //Take the weight from the parent giving the neuron
@@ -257,14 +260,14 @@ public class Cosyne implements RLController {
 
                             child.getLayerAt(il)
                                     .getNeuronAt(in)
-                                    .getInputConnections()[ic]
+                                    .getInputConnections().get(ic)
                                     .setWeight(new Weight(rng.nextDouble())
                                     );
                         }else{
                             //Else set it the the parent
                             child.getLayerAt(il)
                                     .getNeuronAt(in)
-                                    .getInputConnections()[ic]
+                                    .getInputConnections().get(ic)
                                     .setWeight(newWeight
                                     );
                         }
@@ -327,7 +330,7 @@ public class Cosyne implements RLController {
                 a.doNothing();
                 break;
             default:
-                System.out.println("NO ACTION FOR OUTPUT at Cosyne.pickAction");
+                System.out.println("NO ACTION FOR OUTPUT at GA.pickAction");
         }
     }
 }

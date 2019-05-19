@@ -1,14 +1,16 @@
 
 import Learning.BURLAP;
-import Learning.Cosyne;
+import Learning.CoSyNe.CircleSyNe;
+import Learning.CoSyNe.HRL.ActionLearner;
+import Learning.CoSyNe.SubGoalLearning;
+import Learning.CoSyNe.SubSyne;
+import Learning.GA;
 import Learning.HumanController;
 import Model.Simulation;
 import View.MainFrame;
 
 // Roel:
-import Learning.Features;
 
-import java.util.Arrays;
 
 public class Main {
 	public static void main(String[] args) {
@@ -21,8 +23,13 @@ public class Main {
 			final long endTime = System.currentTimeMillis();
 			System.out.println("Total execution time: " + (endTime - startTime));
 		} else if (args.length > 0 && args[0].equals("cosyne_gui")) {
-			System.out.println("Cosyne gui");
-			new Cosyne();
+			System.out.println("CoSyNe gui");
+			//new GA();
+			new CircleSyNe();
+		} else if (args.length > 0 && args[0].equals("GA")){
+			System.out.println("GA");
+			new GA();
+
 		} else if (args.length > 0 && args[0].equals("BURLAP")) {
 			BURLAP test = new BURLAP();
 			test.example();
@@ -33,6 +40,13 @@ public class Main {
 			MainFrame f = new MainFrame(s);
 			f.simulationPanel.addKeyListener(hc);
 			hc.simulationPanel = f.simulationPanel;
+		} else if (args.length > 0 && args[0].equals("sub")){
+			new SubGoalLearning();
+		} else if (args.length > 0 && args[0].equals("subSyne")){
+			new SubSyne();
+		}
+		else if (args.length > 0 && args[0].equals("HRL")){
+			new ActionLearner();
 		} else {
 			use_gui = true;
 			Simulation model = new Simulation(use_gui);

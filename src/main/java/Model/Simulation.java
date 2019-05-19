@@ -2,7 +2,8 @@ package Model;
 
 import Learning.RLController;
 import Model.Elements.*;
-import Navigation.DijkstraShortestPath;
+import Navigation.OrthogonalSubgoals;
+import Navigation.SubGoal;
 //import com.sun.xml.internal.bind.v2.TODO;
 
 import java.io.*;
@@ -36,6 +37,7 @@ public class Simulation extends Observable implements Serializable, Observer {
 	// parameters related to fitness
 	int totalFuel = 0;
 	int totalFuelBurnt = 0;
+	public int goalsHit = 0;
 
 	// parameters related to wind
 	private float wVecX;
@@ -45,7 +47,15 @@ public class Simulation extends Observable implements Serializable, Observer {
 	// parameters related to agents
 	private int nr_agents;
 	private int energyAgents;
-	private boolean useDijkstra = false;
+
+	/*
+	For now, orthogonal goals are predetermined. Al a RL controller needs to do, is determine the values for this array.
+	 */
+    private boolean useSubGoal = true;
+	private double dist[] = {4,4,4,4,4,4,4,4};
+	private OrthogonalSubgoals subGoals;
+	private String algorithm = "Bresenham";
+
 
 	// other classes
 	private ParameterManager parameter_manager;
@@ -78,8 +88,8 @@ public class Simulation extends Observable implements Serializable, Observer {
 		}
 
 		// Generate plan for agent(s)
-		if (useDijkstra){
-			setPathAgents();
+		if (useSubGoal){
+			applySubgoals();
 		}
 
 		findActiveCells();
@@ -90,6 +100,29 @@ public class Simulation extends Observable implements Serializable, Observer {
 		// Save the state so it can be reset to
 		states.add((Simulation) deepCopy(this));
 	}
+
+	public void applySubgoals(){
+		subGoals = new OrthogonalSubgoals(5, 5, dist, algorithm, cells);
+		subGoals.setNextGoal(agents.get(0));
+		useSubGoal = true;
+	}
+
+	public double[] getSubGoals(){
+		return dist;
+	}
+
+	public void setSubGoals(double[] d){
+		dist = d;
+	}
+
+	public void checkSubGoals(){
+        if (useSubGoal){
+            if (agents.size() != 0 && !agents.get(0).onGoal()){
+                subGoals.setNextGoal(agents.get(0));
+                goalsHit++;
+            }
+        }
+    }
 
 	/**
 	 * Start a simulation if there exists a controller.
@@ -118,7 +151,7 @@ public class Simulation extends Observable implements Serializable, Observer {
 		width = 50;
 		height = 50;
 		nr_agents = 3;
-		energyAgents = 20;
+		energyAgents = 100;
 		if (use_gui) {
 			step_time = 100;
 		} else {
@@ -206,8 +239,9 @@ public class Simulation extends Observable implements Serializable, Observer {
 		for(Agent a : agents){
 			a.setController(rlController);
 		}
-		if (useDijkstra){
-			setPathAgents();
+		if (useSubGoal){
+            subGoals = new OrthogonalSubgoals(5, 5, dist, algorithm, cells);
+            subGoals.setNextGoal(agents.get(0));
 		}
 		setChanged();
 		notifyObservers(cells);
@@ -283,6 +317,17 @@ public class Simulation extends Observable implements Serializable, Observer {
 		if (agents.isEmpty() && activeCells.isEmpty()) {
 			stop("empty sets");
 		}
+
+		//Can be removed once Orthogonal Subgoals are assigned by a controller
+		if (useSubGoal){
+		    //System.out.println("Wtf");
+		    if (agents.size() != 0 && !agents.get(0).onGoal()){
+		        subGoals.setNextGoal(agents.get(0));
+		        goalsHit++;
+            }
+        }
+
+
 
 		for (Agent a : agents){
 			String status = a.timeStep();
@@ -498,18 +543,5 @@ public class Simulation extends Observable implements Serializable, Observer {
 	public void applyUpdates(){
 		setChanged();
 		notifyObservers(cells);
-	}
-
-	/**
-	 * For now, the sole purpose of this function is to provide some path finding functionality. Once other there is a
-	 * proper use for pathfinding, this function is redundant and can be removed.
-	 */
-	public void setPathAgents(){
-		for (Agent a: agents){
-			DijkstraShortestPath sp = new DijkstraShortestPath(cells,a,cells.get(49).get(49));
-			sp.findPath();
-			a.setPath(sp);
-			//a.setPlan(sp.getDirections());
-		}
 	}
 }
