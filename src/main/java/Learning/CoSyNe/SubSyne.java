@@ -22,6 +22,22 @@ public class SubSyne extends CoSyNe{
         performLearning();
     }
 
+    @Override
+    protected void rerunScreenShot(){
+        model = new Simulation(this, generation);
+        model.applySubgoals();
+        JFrame f = new MainFrame(model);
+        model.start();
+        try {
+            Thread.sleep(Math.abs(1000));
+        } catch (java.lang.InterruptedException e) {
+            System.out.println(e.getMessage());
+        }
+        screenshot(0, (int) getFitness());
+        ultimate_performance = getFitness();
+        f.dispose();
+    }
+
     /**
      * We need to add subgoals, which the original testMLP didn't do, so we override that.
      */
@@ -30,34 +46,15 @@ public class SubSyne extends CoSyNe{
         model.applySubgoals();
 
         model.start();
-        for(int layer = 0; layer < weightBags.size(); layer++){
-            for(int neuron = 0; neuron < weightBags.get(layer).size(); neuron++){
-                for(int weight = 0; weight < weightBags.get(layer).get(neuron).size(); weight++){
-                    WeightBag bag = weightBags.get(layer).get(neuron).get(weight);
-                    bag.updateFitness(getFitness());
-                }
-            }
-        }
+        assignFitness();
         mean_perfomance += getFitness();
         if(best_performance == null || getFitness() < best_performance){
             best_performance = getFitness();
         }
         if(ultimate_performance == null || getFitness() < ultimate_performance){    //take screenshot
-            ultimate_performance = getFitness();
-
-            model = new Simulation(this);
-            JFrame f = new MainFrame(model);
-            model.applySubgoals();
-            model.start();
-            try {
-                Thread.sleep(Math.abs(1000));
-            } catch (java.lang.InterruptedException e) {
-                System.out.println(e.getMessage());
-            }
-            screenshot(0, (int) getFitness());
-            f.dispose();
+            rerunScreenShot();
         }
-        model = new Simulation(this);
+        model = new Simulation(this, generation);
     }
 
     @Override
@@ -88,7 +85,7 @@ public class SubSyne extends CoSyNe{
 
     @Override
     protected int defN_generations() {
-        return 1000;
+        return 500;
     }
 
     @Override
@@ -113,7 +110,7 @@ public class SubSyne extends CoSyNe{
      * Though 30 x might be a bit much
      */
     protected int defGenerationSize() {
-        return defBagSize() * 30;
+        return defBagSize() * 10;
     }
 
     @Override
@@ -123,7 +120,7 @@ public class SubSyne extends CoSyNe{
 
     @Override
     protected int defN_children() {
-        return 5;
+        return 10;
     }
 
     @Override
@@ -132,7 +129,7 @@ public class SubSyne extends CoSyNe{
      */
     protected double[] getInput() {
         if(model == null){
-            model = new Simulation(this);
+            model = new Simulation(this, generation);
             model.applySubgoals();
         }
         Agent agent = model.getAgents().get(0);

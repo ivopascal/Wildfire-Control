@@ -59,9 +59,10 @@ public class DijkstraShortestPath extends PathFinder implements Serializable {
         int agentX=agent.getX();
         int agentY=agent.getY();
 
-        st.add(new Node(cells.get(agentX).get(agentY),0,null));
+        st.add(new Node(cells.get(goal.getX()).get(goal.getY()),0,null));
 
-        cost[agentX][agentY]=0;
+        //cost[agentX][agentY]=0;
+        cost[goal.getX()][goal.getY()]=0;
 
         Node k = st.remove();
         Element e = k.getElement();
@@ -97,17 +98,19 @@ public class DijkstraShortestPath extends PathFinder implements Serializable {
 
                 }
             }
+            if(!st.isEmpty()) {
+                k = st.remove();
+                e = k.getElement();
+            }
 
-            k = st.remove();
-            e = k.getElement();
-
-        } while (!e.equals(goal)&&!st.isEmpty());
+        } while (/*!e.equals(cells.get(agentX).get(agentY))&&*/!st.isEmpty());
 
         if (!e.equals(goal)){
-            System.out.println("No path found :(");
+            //System.out.println("No path found :(");
         } else {
             makePath(k);
         }
+        //printMatrix(cost);
     }
 
     /**

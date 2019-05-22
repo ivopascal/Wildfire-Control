@@ -2,6 +2,8 @@ package Learning;
 
 import Model.Agent;
 import Model.Simulation;
+import Navigation.PathFinding.DijkstraShortestPath;
+import Navigation.SubGoal;
 
 import javax.swing.*;
 import java.awt.event.KeyEvent;
@@ -14,6 +16,8 @@ public class HumanController implements RLController, KeyListener, Serializable 
     private Fitness fitness = new Fitness();
     private Simulation model;
     private Features features;
+    private DijkstraShortestPath dsp;
+    private SubGoal goal;
 
     public HumanController() {
         features = new Features();
@@ -32,6 +36,22 @@ public class HumanController implements RLController, KeyListener, Serializable 
             System.out.print(d +" ");
         }
         System.out.print("\n");
+
+        if(goal == null || goal != a.goal){
+            goal = a.goal;
+            dsp = new DijkstraShortestPath(model.getAllCells(), a, a.goal.goal, true);
+            dsp.findPath();
+        }
+
+        int x = a.getX();
+        int y = a.getY();
+
+        System.out.println("Polling from " + a.getX() + ", " + a.getY());
+        System.out.println("L " + getCellCost(x-1, y, dsp));
+        System.out.println("R " + getCellCost(x+1, y, dsp));
+        System.out.println("U " + getCellCost(x, y+1,dsp));
+        System.out.println("D " + getCellCost(x, y-1,dsp));
+        System.out.println("Goal " + a.goal.goal.getX() + ", " + a.goal.goal.getY());
 
         while(keyEvent == null){
             try {
@@ -76,6 +96,13 @@ public class HumanController implements RLController, KeyListener, Serializable 
 
         keyEvent = null;
 
+    }
+
+    private int getCellCost(int x, int y, DijkstraShortestPath dsp){
+        if(x < 0 || y < 0 || x >= dsp.cost.length || y >= dsp.cost[x].length ){
+            return Integer.MAX_VALUE;
+        }
+        return dsp.cost[x][y];
     }
 
     @Override

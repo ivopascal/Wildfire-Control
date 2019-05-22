@@ -85,11 +85,7 @@ public abstract class CoSyNe implements RLController {
         }
     }
 
-    /**
-     * Subject the MLP to the simulation so we can establish its fitness.
-     */
-    protected void testMLP(){
-        model.start();
+    protected void assignFitness(){
         for(int layer = 0; layer < weightBags.size(); layer++){
             for(int neuron = 0; neuron < weightBags.get(layer).size(); neuron++){
                 for(int weight = 0; weight < weightBags.get(layer).get(neuron).size(); weight++){
@@ -98,25 +94,39 @@ public abstract class CoSyNe implements RLController {
                 }
             }
         }
-        mean_perfomance += getFitness();
+    }
+
+    /**
+     * Rerun the simulation so we can take a screenshot
+     */
+    protected void rerunScreenShot(){
+        model = new Simulation(this, generation);
+        JFrame f = new MainFrame(model);
+        model.start();
+        try {
+            Thread.sleep(Math.abs(1000));
+        } catch (java.lang.InterruptedException e) {
+            System.out.println(e.getMessage());
+        }
+        screenshot(0, (int) getFitness());
+        f.dispose();
+    }
+
+    /**
+     * Subject the MLP to the simulation so we can establish its fitness.
+     */
+    protected void testMLP(){
+        model.start();
+        assignFitness();
         if(best_performance == null || getFitness() < best_performance){
             best_performance = getFitness();
         }
-        if(ultimate_performance == null || getFitness() < ultimate_performance){    //take screenshot
-            model = new Simulation(this);
-
-            JFrame f = new MainFrame(model);
-            model.start();
-            try {
-                Thread.sleep(Math.abs(1000));
-            } catch (java.lang.InterruptedException e) {
-                System.out.println(e.getMessage());
-            }
-            screenshot(0, (int) getFitness());
+        mean_perfomance += getFitness();
+        if(ultimate_performance == null || getFitness() < ultimate_performance) {   //take screenshot
             ultimate_performance = getFitness();
-            f.dispose();
+            rerunScreenShot();
         }
-        model = new Simulation(this);
+        model = new Simulation(this, generation);
     }
 
     /**
@@ -168,14 +178,40 @@ public abstract class CoSyNe implements RLController {
     }
 
     /**
+     * When applying softmax to large numbers (>710) we find e^710 = inf.
+     * To prevent this, we subtract everything by the largest number
+     * @param outputs
+     * @return
+     */
+    protected double[] rescaleOverflow(double[] outputs){
+        double max = Double.MIN_VALUE;
+
+        for(int i = 0; i<outputs.length; i++){
+            if(outputs[i] > max){
+                max = outputs[i];
+            }
+        }
+
+        for(int i =0; i<outputs.length; i++){
+            outputs[i] -= max;
+        }
+        return outputs;
+
+    }
+
+    /**
      * Extracts an action integer from the MLPs output. Using SoftMax
      * @param a
      */
     @Override
     public void pickAction(Agent a) {
+        assert(getInput()[0] <=1);
         mlp.setInput(getInput());
         mlp.calculate();
         double[] outputs = mlp.getOutput();
+        //System.out.println("In " + Arrays.toString(outputs));
+
+        outputs = rescaleOverflow(outputs);
 
 
         //We apply softMax
@@ -183,16 +219,24 @@ public abstract class CoSyNe implements RLController {
 
         for(int i = 0; i< outputs.length; i++){
             sum = sum + Math.exp(outputs[i]/ defCertainty());
+            if(Math.exp(outputs[i]/defCertainty()) == Double.POSITIVE_INFINITY){
+                System.out.print(outputs[i] + ", ");
+                System.out.print(outputs[i]/defCertainty() + ", ");
+                System.out.println(Math.exp(outputs[i]/ defCertainty()));
+            }
         }
 
         double rand = new Random().nextDouble();
 
         double step = 0;
         int chosen_action = -1;
+        //System.out.print("Out ");
         while(chosen_action < outputs.length && step < rand){
             chosen_action++;
             step += Math.exp(outputs[chosen_action]/defCertainty())/sum;
+           // System.out.print(Math.exp(outputs[chosen_action]/defCertainty())/sum + " ");
         }
+       // System.out.println();
 
         if(mean_confidence == null){
             mean_confidence = new Double(0);

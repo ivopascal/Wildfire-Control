@@ -2,6 +2,7 @@
 import Learning.BURLAP;
 import Learning.CoSyNe.CircleSyNe;
 import Learning.CoSyNe.HRL.ActionLearner;
+import Learning.CoSyNe.HRL.HybridRL;
 import Learning.CoSyNe.SubGoalLearning;
 import Learning.CoSyNe.SubSyne;
 import Learning.GA;
@@ -24,7 +25,6 @@ public class Main {
 			System.out.println("Total execution time: " + (endTime - startTime));
 		} else if (args.length > 0 && args[0].equals("cosyne_gui")) {
 			System.out.println("CoSyNe gui");
-			//new GA();
 			new CircleSyNe();
 		} else if (args.length > 0 && args[0].equals("GA")){
 			System.out.println("GA");
@@ -45,17 +45,14 @@ public class Main {
 		} else if (args.length > 0 && args[0].equals("subSyne")){
 			new SubSyne();
 		}
-		else if (args.length > 0 && args[0].equals("HRL")){
+		else if (args.length > 0 && args[0].equals("HRL")) {
 			new ActionLearner();
+		}else if(args.length > 0 && args[0].equals("hybrid")){
+			new HybridRL();
 		} else {
 			use_gui = true;
 			Simulation model = new Simulation(use_gui);
 			new MainFrame(model);
-
-			/*// Roel:
-			Features features = new Features();
-			features.downSampledFuelMap(model, 3, 3,1);
-			*/
 		}
 	}
 

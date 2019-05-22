@@ -30,7 +30,7 @@ public class Simulation extends Observable implements Serializable, Observer {
 	private boolean undo_redo;
 	private boolean running;
 	private boolean use_gui;
-	private boolean generateRandom = false;
+	private boolean generateRandom = true;
 	private Random rand;
 	private long randomizer_seed = 0;
 
@@ -62,7 +62,13 @@ public class Simulation extends Observable implements Serializable, Observer {
 	private Generator generator;
 	private RLController rlController;
 
-	public Simulation(boolean use_gui) {
+	public Simulation(boolean use_gui){
+		this(use_gui, 0);
+	}
+
+
+	public Simulation(boolean use_gui, long randomizer_seed) {
+		this.randomizer_seed = randomizer_seed;
 		this.use_gui = use_gui;
 
 		// Randomization initialization
@@ -82,8 +88,8 @@ public class Simulation extends Observable implements Serializable, Observer {
 		if (generateRandom) {
 			generator.randomMap();
 		} else {
-			parameter_manager.changeParameter("Model", "Width", 10f);
-			parameter_manager.changeParameter("Model", "Height", 10f);
+			parameter_manager.changeParameter("Model", "Width", 20f);
+			parameter_manager.changeParameter("Model", "Height", 20f);
 			generator.plainMap();
 		}
 
@@ -101,8 +107,29 @@ public class Simulation extends Observable implements Serializable, Observer {
 		states.add((Simulation) deepCopy(this));
 	}
 
+	public Simulation(RLController controller){
+		this(controller,0);
+	}
+
+	/**
+	 * Start a simulation if there exists a controller.
+	 * Currently this does show a GUI with new MainFrame, but this can be removed for actual learning.
+	 * @param controller
+	 */
+	public Simulation(RLController controller, long randomizer_seed) {
+		this(false, randomizer_seed);
+		if(generateRandom){
+			//System.out.println("WARNING! GENERATING RANDOM MIGHT CAUSE NPE");
+		}
+		this.rlController = controller;
+		for (Agent a: agents) {
+			a.setController(rlController);
+		}
+		parameter_manager.changeParameter("Model", "Step Time", 0f);
+	}
+
 	public void applySubgoals(){
-		subGoals = new OrthogonalSubgoals(5, 5, dist, algorithm, cells);
+		subGoals = new OrthogonalSubgoals(parameter_manager.getWidth()/2, parameter_manager.getHeight()/2, dist, algorithm, cells);
 		subGoals.setNextGoal(agents.get(0));
 		useSubGoal = true;
 	}
@@ -124,22 +151,7 @@ public class Simulation extends Observable implements Serializable, Observer {
         }
     }
 
-	/**
-	 * Start a simulation if there exists a controller.
-	 * Currently this does show a GUI with new MainFrame, but this can be removed for actual learning.
-	 * @param controller
-	 */
-	public Simulation(RLController controller) {
-		this(false);
-		if(generateRandom){
-			System.out.println("WARNING! GENERATING RANDOM MIGHT CAUSE NPE");
-		}
-		this.rlController = controller;
-		for (Agent a: agents) {
-			a.setController(rlController);
-		}
-		parameter_manager.changeParameter("Model", "Step Time", 0f);
-	}
+
 
 
 	/**
@@ -148,9 +160,9 @@ public class Simulation extends Observable implements Serializable, Observer {
 	 * If you want to access the value of a parameter do parameters.get("Parameter name").floatValue()
 	 */
 	private void create_parameters() {
-		width = 50;
-		height = 50;
-		nr_agents = 3;
+		width = 20;
+		height = 20;
+		nr_agents = 1;
 		energyAgents = 100;
 		if (use_gui) {
 			step_time = 100;

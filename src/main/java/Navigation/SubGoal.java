@@ -25,7 +25,7 @@ public class SubGoal implements Serializable {
         if (agent.checkTile(goal.getX(), goal.getY())){
             determinePath(cutPath);
         } else {
-            System.out.println("Invalid goal, pick another one");
+            //System.out.println("Invalid goal, pick another one");
         }
     }
 
