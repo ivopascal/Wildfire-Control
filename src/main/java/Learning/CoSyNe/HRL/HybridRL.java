@@ -6,15 +6,21 @@ import Model.Elements.Element;
 import Model.Simulation;
 import Navigation.PathFinding.DijkstraShortestPath;
 import Navigation.SubGoal;
+import org.neuroph.core.Layer;
+import org.neuroph.core.Neuron;
 import org.neuroph.core.Weight;
+import org.neuroph.core.transfer.Linear;
 import org.neuroph.util.TransferFunctionType;
+
+import java.util.List;
 
 public class HybridRL extends ActionLearner {
 
     private DijkstraShortestPath dsp;
     private SubGoal previousGoal;
     private WeightBag[] hybridBags;
-    private Weight[] hybridWeights;
+    private Weight certaintyWeight;
+    private Neuron[] hybridNeurons;
 
     public HybridRL(){
         super();
@@ -26,10 +32,11 @@ public class HybridRL extends ActionLearner {
     @Override
     protected void initializeBags(){
         super.initializeBags();
-        hybridBags = new WeightBag[4];
-        for(int i = 0; i<4; i++){
-            hybridBags[i] = new WeightBag(defBagSize(),defAlpha(), defWeightSpread());
+        hybridBags = new WeightBag[17];
+        for(int i = 0; i<16; i++){
+            hybridBags[i] = new WeightBag(defBagSize(),defAlpha(), defWeightSpread()*100);
         }
+        hybridBags[16] = new WeightBag(defBagSize(),defAlpha(), 1);
     }
 
     /**
@@ -38,12 +45,47 @@ public class HybridRL extends ActionLearner {
     @Override
     protected void createMLP(){
         super.createMLP();
-        if(hybridWeights == null){
-            hybridWeights = new Weight[4];
+        if(hybridNeurons == null){
+            hybridNeurons = new Neuron[4];
         }
-        for(int i = 0; i<4; i++){
-            hybridWeights[i] = hybridBags[i].randomWeight();
+
+        Layer out = mlp.getLayerAt(mlp.getLayersCount() -1);
+
+        for(int i =0; i<4; i++){
+            hybridNeurons[i] = new Neuron();
         }
+
+        for(int i =0; i< out.getNeuronsCount(); i++){
+            Neuron n = out.getNeuronAt(i);
+            n.setTransferFunction(new Linear());
+            for(int j=0; j<hybridNeurons.length; j++){
+                int bagslot = i * hybridNeurons.length + j;
+                n.addInputConnection(hybridNeurons[j], hybridBags[bagslot].randomWeight().getValue());
+            }
+        }
+
+        certaintyWeight = hybridBags[16].randomWeight();    //Weight for certainty, rest of list is obsolete
+
+    }
+
+    @Override
+    protected void createBest(){
+        super.createBest();
+        Layer out = mlp.getLayerAt(mlp.getLayersCount() -1);
+
+        for(int i =0; i<4; i++){
+            hybridNeurons[i] = new Neuron();
+        }
+
+        for(int i =0; i< out.getNeuronsCount(); i++){
+            Neuron n = out.getNeuronAt(i);
+            for(int j=0; j<hybridNeurons.length; j++){
+                int bagslot = i * hybridNeurons.length + j;
+                n.addInputConnection(hybridNeurons[j], hybridBags[bagslot].bestWeight().getValue());
+            }
+        }
+
+        certaintyWeight = hybridBags[16].bestWeight();
     }
 
     /**
@@ -52,7 +94,7 @@ public class HybridRL extends ActionLearner {
     @Override
     protected void breed(){
         super.breed();
-        for(int i =0; i<4; i++){
+        for(int i =0; i<17; i++){
             hybridBags[i].breed(defN_children());
         }
     }
@@ -63,7 +105,7 @@ public class HybridRL extends ActionLearner {
     @Override
     protected void assignFitness(){
         super.assignFitness();
-        for(int i =0; i<4; i++){
+        for(int i =0; i<17; i++){
             hybridBags[i].updateFitness(getFitness());
         }
     }
@@ -79,51 +121,89 @@ public class HybridRL extends ActionLearner {
         if(previousGoal == null || previousGoal != agent.goal){
             previousGoal = agent.goal;
             dsp = new DijkstraShortestPath(model.getAllCells(), agent, goal, true);
-            dsp.findPath();
+            dsp.writeGoalMap();
         }
 
         int x = agent.getX();
         int y = agent.getY();
+        List<List<Element>> cells = model.getAllCells();
+        double[] output = new double[12];
 
-        double[] output = new double[4];
-        output[0] = getCellCost(x-1, y);
-        output[1] = getCellCost(x+1, y);
-        output[2] = getCellCost(x, y+1);
-        output[3] = getCellCost(x, y-1);
+        output[0] = isHouse(x-1, y, cells);
+        output[1] = isHouse(x+1, y, cells);
+        output[2] = isHouse(x, y+1, cells);
+        output[3] = isHouse(x, y-1, cells);
 
+        output[4] = isHouse(x-1, y-1, cells);
+        output[5] = isHouse(x-1, y+1, cells);
+        output[6] = isHouse(x+1, y-1, cells);
+        output[7] = isHouse(x+1, y+1, cells);
+
+        output[8] = x - (cells.size()/2);
+        output[9] = (cells.size()/2) -x;
+        output[10] = y - (cells.get(x).size()/2);
+        output[11] = (cells.get(x).size()/2) - y;
+
+        double[] cellcosts = new double[4];
+        cellcosts[0] = getCellCost(x+1, y);
+        cellcosts[1] = getCellCost(x-1, y);
+        cellcosts[2] = getCellCost(x, y+1);
+        cellcosts[3] = getCellCost(x, y-1);
         double max = 0.0;
+        double min = Double.MAX_VALUE;
         for(int i = 0; i<4; i++){
-            if(output[i] > max){
-                max = output[i];
+            if(cellcosts[i] > max){
+                max = cellcosts[i];
+            }
+            if(cellcosts[i] < min){
+                min = cellcosts[i];
             }
         }
 
+
         for(int i = 0; i<4; i++){
-            output[i]/=max;
+
+            //cellcosts[i]/=max;
+            if(cellcosts[i] == min){
+                cellcosts[i] = 1;
+            }else{
+                cellcosts[i] = 0;
+            }
         }
+
+
+        for(int i=0; i<4 && hybridNeurons != null; i++){
+            //System.err.print(cellcosts[i] + " ");
+            hybridNeurons[i].setOutput(cellcosts[i]);
+            //hybridNeurons[i].calculate();
+            if(hybridNeurons[i].getOutConnections().size() != 4){
+                //System.err.println("Neuron has " + hybridNeurons[i].getOutConnections().size() + " out");
+            }
+        }
+        //System.err.print("\n");
+
+        //Perform operations to set inputs of the extras
         return output;
-
-        /*
-        System.out.println("L " + getCellCost(x-1, y));
-        System.out.println("R " + getCellCost(x+1, y));
-        System.out.println("U " + getCellCost(x, y+1));
-        System.out.println("D " + getCellCost(x, y-1));
-
-
-        return super.getInput();
-        */
     }
 
     @Override
     protected double[] rescaleOverflow(double[] outputs){
-        int x = model.getAgents().get(0).getX();
-        int y = model.getAgents().get(0).getY();
-        outputs[0] += hybridWeights[0].getValue()*getCellCost(x+1, y);
-        outputs[1] += hybridWeights[1].getValue()*getCellCost(x-1, y);
-        outputs[2] += hybridWeights[2].getValue()*getCellCost(x, y+1);
-        outputs[3] += hybridWeights[3].getValue()*getCellCost(x, y-1);
-        return super.rescaleOverflow(outputs);
 
+
+        return super.rescaleOverflow(outputs);
+    }
+
+    private int isHouse(int x, int y, List<List<Element>> cells){
+        if(x <0 || y < 0 || x>= cells.size() || y >= cells.get(x).size()){
+            return 0;
+        }
+        if(cells.get(x).get(y).getType() == "House"){
+            return 1;
+        }
+        //if(cells.get(x).get(y).isBurning()){
+        //    return 1;
+        //}
+        return 0;
     }
 
     private int getCellCost(int x, int y){
@@ -135,7 +215,11 @@ public class HybridRL extends ActionLearner {
 
     @Override
     protected double defCertainty() {
-        return 0.5;
+
+        if(certaintyWeight.getValue() <=0){
+            return 0.001;
+        }
+        return certaintyWeight.getValue();
     }
 
 

@@ -6,6 +6,10 @@ import Learning.Fitness;
 import Model.Simulation;
 import View.MainFrame;
 import javax.swing.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * We build on SubSyne, since this already knows how to navigate to a subgoal, and use GoalLearner to pick the subgoals.
@@ -15,6 +19,7 @@ public class ActionLearner extends SubSyne {
     private Double bestGoalFitness;
     private Double meanGoalFitness;
     private GoalLearner goalLearner;
+    private List<Double> goalFitnessess;
     public ActionLearner(){
         super();
     }
@@ -53,15 +58,17 @@ public class ActionLearner extends SubSyne {
         assignFitness();
         //We grant a fitness to goalLearner
         goalLearner.setFitness(getGoalFitness());
+        Fitness fit = new Fitness();
+        goalFitnessess.add((double) fit.totalHousesLeft(model));
+
 
         mean_perfomance += getFitness();
         if(best_performance == null || getFitness() < best_performance){
             best_performance = getFitness();
-            rerunScreenShot();
         }
         if(ultimate_performance == null || getFitness() < ultimate_performance){    //take screenshot
             ultimate_performance = getFitness();
-            //rerunScreenShot();
+            rerunScreenShot();
         }
         model = new Simulation(this, generation);
     }
@@ -71,11 +78,38 @@ public class ActionLearner extends SubSyne {
      * Changed printPerformance to add some more insights relevant to the HRL
      */
     protected void printPerformance(){
-        System.out.println("Best performance: " + best_performance + " , " + bestGoalFitness);
-        System.out.println("Mean performance: " + mean_perfomance + " , " + meanGoalFitness/defGenerationSize());
-        System.out.println("Mean confidence: " + mean_confidence / conf_counter);
+        //System.out.println("Best performance: " + best_performance + " , " + bestGoalFitness);
+        //System.out.println("Mean performance: " + mean_perfomance + " , " + meanGoalFitness/defGenerationSize());
+        //System.out.println("Mean confidence: " + mean_confidence / conf_counter);
+        /*
+        double parentMean = 0;
+        Collections.sort(goalFitnessess);
+        for(int i=0; i<goalFitnessess.size(); i++){
+            parentMean += goalFitnessess.get(i);
+        }
+        parentMean/=(goalFitnessess.size());
+        System.out.println(parentMean);
+        */
+        goalFitnessess = null;
         bestGoalFitness = null;
         meanGoalFitness = null;
+        testBest();
+    }
+
+    @Override
+    protected void createBest() {
+        super.createBest();
+        goalLearner.createBest();
+    }
+
+    @Override
+    protected void printBest(){
+        double[] dist = goalLearner.generateGoals(model);
+        model.setSubGoals(dist);
+        model.applySubgoals();
+        model.start();
+        System.out.println(getGoalFitness());
+        model = new Simulation(this, generation);
 
     }
 
@@ -102,14 +136,18 @@ public class ActionLearner extends SubSyne {
      */
     private double getGoalFitness(){
         Fitness fit = new Fitness();
-        if(bestGoalFitness == null || fit.totalFuelBurnt(model) < bestGoalFitness){
-            bestGoalFitness = (double) fit.totalFuelBurnt(model);
+        if(goalFitnessess == null){
+            goalFitnessess = new ArrayList<>();
+        }
+        double fitness = fit.totalHousesLeft(model);
+        if(bestGoalFitness == null || fitness < bestGoalFitness){
+            bestGoalFitness = fitness;
         }
         if(meanGoalFitness == null){
             meanGoalFitness = new Double(0);
         }
-        meanGoalFitness += fit.totalFuelBurnt(model);
-        return fit.totalFuelBurnt(model);
+        meanGoalFitness += fitness;
+        return fitness;
     }
 
 }

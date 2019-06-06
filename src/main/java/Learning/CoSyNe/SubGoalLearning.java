@@ -11,7 +11,10 @@ import org.neuroph.util.TransferFunctionType;
 
 import javax.swing.*;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import static java.lang.Double.NaN;
 
@@ -22,10 +25,12 @@ import static java.lang.Double.NaN;
 public class SubGoalLearning extends CoSyNe  {
 
     OffsetFeatures features;
+    private List<Double> goalFitnessess;
+
 
     public SubGoalLearning(){
         super();
-        model = new Simulation(false);  //Not Simulation(this), since we don't pick the individual moves
+        model = new Simulation(false, generation);  //Not Simulation(this), since we don't pick the individual moves
         performLearning();
     }
 
@@ -45,7 +50,44 @@ public class SubGoalLearning extends CoSyNe  {
         mlp.setInput(getInput());
         mlp.calculate();
         return (mlp.getOutput()[0]*model.getParameter_manager().getWidth() +2)/2;
+    }
 
+    @Override
+    /**
+     * Changed printPerformance to add some more insights relevant to the HRL
+     */
+    protected void printPerformance(){
+        //System.out.println("Best performance: " + best_performance + " , " + bestGoalFitness);
+        //System.out.println("Mean performance: " + mean_perfomance + " , " + meanGoalFitness/defGenerationSize());
+        //System.out.println("Mean confidence: " + mean_confidence / conf_counter);
+
+        /*
+        Collections.sort(goalFitnessess);
+        double parentMean = 0;
+        for(int i=0; i<goalFitnessess.size()/(defBagSize()-defN_children()); i++){
+            parentMean += goalFitnessess.get(i);
+        }
+        parentMean/=(goalFitnessess.size()/(defBagSize()-defN_children()));
+        System.out.println(parentMean);
+        */
+        goalFitnessess = null;
+
+        testBest();
+
+    }
+
+    @Override
+    protected void printBest(){
+        double[] dist = model.getSubGoals();
+        for(int i = 0; i < dist.length; i++){
+            dist[i] = determineOffset(i, dist.length);
+        }
+        model.setSubGoals(dist);
+        model.start();
+
+        System.out.println(getFitness());
+
+        model = new Simulation(false, generation);
     }
 
     /**
@@ -71,12 +113,18 @@ public class SubGoalLearning extends CoSyNe  {
                 }
             }
         }
+
+        if(goalFitnessess == null){
+            goalFitnessess = new ArrayList<>();
+        }
+        goalFitnessess.add(getFitness());
+
         mean_perfomance += getFitness();
         if(best_performance == null || getFitness() < best_performance){
             best_performance = getFitness();
         }
-        if(ultimate_performance == null || getFitness() < ultimate_performance){    //take screenshot
-            model = new Simulation(false);
+        if( ultimate_performance == null || getFitness() < ultimate_performance){    //take screenshot
+            model = new Simulation(false, generation);
             model.getParameter_manager().changeParameter("Model", "Step Time", 1000f);
             JFrame f = new MainFrame(model);
             dist = model.getSubGoals();
@@ -94,7 +142,7 @@ public class SubGoalLearning extends CoSyNe  {
             ultimate_performance = getFitness();
             f.dispose();
         }
-        model = new Simulation(false);
+        model = new Simulation(false, generation);
     }
 
     /**
@@ -109,7 +157,7 @@ public class SubGoalLearning extends CoSyNe  {
 
     @Override
     protected int defN_generations() {
-        return 20;
+        return 2000;
     }
 
     /**
@@ -132,7 +180,7 @@ public class SubGoalLearning extends CoSyNe  {
 
     @Override
     protected int defBagSize() {
-        return 30;
+        return 20;
     }
 
     @Override
@@ -142,12 +190,12 @@ public class SubGoalLearning extends CoSyNe  {
 
     @Override
     protected float defAlpha() {
-        return 0.05f;
+        return 0.1f;
     }
 
     @Override
     protected int defN_children() {
-        return 10;
+        return 5;
     }
 
     @Override
@@ -162,7 +210,8 @@ public class SubGoalLearning extends CoSyNe  {
     protected double getFitness() {
         Fitness fit = new Fitness();
 
-        return fit.totalFuelBurnt(model);
+        double fitness = fit.totalHousesLeft(model);
+        return fitness;
     }
 
     @Override

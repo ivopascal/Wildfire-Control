@@ -6,6 +6,7 @@ import Model.Simulation;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 
 public class Fitness implements Serializable {
 
@@ -158,5 +159,26 @@ public class Fitness implements Serializable {
 			return 0;
 		}
 		*/
+	}
+
+	public double totalHousesLeft(Simulation model){
+		List<List<Element>> cells = model.getAllCells();
+
+		double total = 0;
+		double burning = 0;
+		for(int i =0; i< cells.size(); i++){
+			for(int j=0; j<cells.size(); j++){
+				if(cells.get(i).get(j).getType() == "House"){
+					if(cells.get(i).get(j).getFuel() <=0){
+						burning++;
+					}
+					total++;
+				}
+			}
+		}
+		if(total == 0){
+			return 1;
+		}
+		return burning/total;
 	}
 }

@@ -205,11 +205,28 @@ public abstract class CoSyNe implements RLController {
      */
     @Override
     public void pickAction(Agent a) {
+        //System.out.println("In ");
+
         assert(getInput()[0] <=1);
         mlp.setInput(getInput());
         mlp.calculate();
         double[] outputs = mlp.getOutput();
-        //System.out.println("In " + Arrays.toString(outputs));
+
+
+
+
+        /*
+        double max = outputs[0];
+        int picked = 0;
+        for(int i = 1; i< outputs.length; i++){
+            if(outputs[i] > max){
+                max = outputs[i];
+                picked = i;
+            }
+        }
+        performAction(picked, a);
+        return;
+        */
 
         outputs = rescaleOverflow(outputs);
 
@@ -219,19 +236,22 @@ public abstract class CoSyNe implements RLController {
 
         for(int i = 0; i< outputs.length; i++){
             sum = sum + Math.exp(outputs[i]/ defCertainty());
+
             if(Math.exp(outputs[i]/defCertainty()) == Double.POSITIVE_INFINITY){
-                System.out.print(outputs[i] + ", ");
-                System.out.print(outputs[i]/defCertainty() + ", ");
-                System.out.println(Math.exp(outputs[i]/ defCertainty()));
+                System.err.print(outputs[i] + ", ");
+                System.err.print(outputs[i]/defCertainty() + ", ");
+                System.err.println(Math.exp(outputs[i]/ defCertainty()));
             }
+
         }
+
 
         double rand = new Random().nextDouble();
 
         double step = 0;
         int chosen_action = -1;
         //System.out.print("Out ");
-        while(chosen_action < outputs.length && step < rand){
+        while(chosen_action < outputs.length && step < rand && chosen_action < outputs.length-1){
             chosen_action++;
             step += Math.exp(outputs[chosen_action]/defCertainty())/sum;
            // System.out.print(Math.exp(outputs[chosen_action]/defCertainty())/sum + " ");
@@ -248,6 +268,33 @@ public abstract class CoSyNe implements RLController {
         mean_confidence = mean_confidence + Math.exp(outputs[chosen_action]/defCertainty())/sum;
         conf_counter++;
         performAction(chosen_action, a);
+
+
+    }
+
+    protected void testBest(){
+        createBest();
+        printBest();
+    }
+
+    protected void createBest(){
+        mlp = new MultiLayerPerceptron(MLP_shape, defTransferFunction());
+        for (int layer = 0; layer < mlp.getLayersCount(); layer ++) {
+            for (int neuron = 0; neuron < mlp.getLayerAt(layer).getNeuronsCount(); neuron++) {
+                for (int weight = 0; weight < mlp.getLayerAt(layer).getNeuronAt(neuron).getWeights().length; weight++) {
+                    mlp.getLayerAt(layer).getNeuronAt(neuron).getInputConnections().get(weight).setWeight(weightBags.get(layer).get(neuron).get(weight).bestWeight());
+                }
+            }
+        }
+    }
+
+    protected void printBest(){
+        model.start();
+
+        System.out.println(getFitness());
+
+        model = new Simulation(this, generation);
+
     }
 
     /**

@@ -32,6 +32,11 @@ public class GoalLearner extends SubGoalLearning {
         return dist;
     }
 
+    @Override
+    public void createBest(){
+        super.createBest();
+    }
+
     /**
      * The master ActionLearner class determines a fitness for us.
      * @param fitness

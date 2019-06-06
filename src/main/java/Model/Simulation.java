@@ -54,7 +54,7 @@ public class Simulation extends Observable implements Serializable, Observer {
     private boolean useSubGoal = true;
 	private double dist[] = {4,4,4,4,4,4,4,4};
 	private OrthogonalSubgoals subGoals;
-	private String algorithm = "Bresenham";
+	private String algorithm = "Dijkstra";
 
 
 	// other classes
@@ -85,6 +85,7 @@ public class Simulation extends Observable implements Serializable, Observer {
 		generator = new Generator(this);
 
 		// Generate a new map to start on
+		//generateRandom = false;
 		if (generateRandom) {
 			generator.randomMap();
 		} else {
@@ -185,7 +186,7 @@ public class Simulation extends Observable implements Serializable, Observer {
 	public void start() {
 		running = true;
 		int nsteps = 0;
-		while (running && nsteps < step_limit) {
+		while (running /* && nsteps < step_limit*/) {
 			nsteps++;
 			if (nsteps >= step_limit) {		// this makes it more clear when it's out of steps
 				stop("step limit");

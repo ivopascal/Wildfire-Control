@@ -86,18 +86,21 @@ class Generator implements Serializable {
         refreshParameters();
         initializeMap();
 
-        int wetlands = 2; // Variable (1-10) that influences dirt (dry) and rivers/lakes (wet)
+        int wetlands = 1; // Variable (1-10) that influences dirt (dry) and rivers/lakes (wet)
         int urban = 4; // Variable (1-10) that influences bushes/grass (rural) and houses/roads (urban)
 
         // (added zero before everything to test parameters wetlands/urban)
         int numberDirt = rand.nextInt((int) (0.01 * area)) * (10-wetlands);
-        numberDirt = 2;
+        numberDirt = 0;
         int numberBushes = rand.nextInt((int) (0.01 * area)) * (10-urban);
-        int numberHouses = rand.nextInt((int) (0.02 * area)) * urban;
+        //int numberHouses = rand.nextInt((int) (0.02 * area)) * urban;
+        int numberHouses = rand.nextInt((int) (0.1 * area)) * urban;
+        numberHouses = (int)( 0.3*(0.1* (double)area) * (double) urban);
         int numberLakes = rand.nextInt((int) (0.02 * area)) * (wetlands / 2);
         int numberBridges = rand.nextInt(3);
         int numberRivers = wetlands / 2;
         int numberRoads = urban / 2;
+        numberRoads = 0;
         /* OLD SETTINGS :
         int numberDirt = rand.nextInt((int) (0.01 * area));
         int numberBushes = rand.nextInt((int) (0.1 * area));

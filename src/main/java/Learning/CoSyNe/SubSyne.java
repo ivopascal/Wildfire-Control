@@ -15,8 +15,6 @@ import javax.swing.*;
 public class SubSyne extends CoSyNe{
 
 
-    protected boolean previousaction =true; //Switch for ensuring every other action is a dig
-
     public SubSyne(){
         super();
         performLearning();
@@ -59,9 +57,10 @@ public class SubSyne extends CoSyNe{
 
     @Override
     protected void performAction(int action, Agent a) {
-        if(previousaction){ //every other action is a dig
+        if(model.getAllCells().get(a.getX()).get(a.getY()).getType() == "Grass"
+                || model.getAllCells().get(a.getX()).get(a.getY()).getType() == "Tree"
+                ){ //every other action is a dig
             a.makeDirt();
-            previousaction = false;
         }else {
             switch (action) {
                 case 0:
@@ -79,18 +78,18 @@ public class SubSyne extends CoSyNe{
                 default:
                     System.out.println("WARNING, no action defined for action in SubSyne.performAction()");
             }
-            previousaction = true;
         }
     }
 
     @Override
     protected int defN_generations() {
-        return 500;
+        return 2000;
     }
 
     @Override
     protected int[] defHiddenLayers() {
-        int[] hl = {4};
+        //int[] hl = {4};
+        int[] hl = {};
         return hl;
     }
 
@@ -115,7 +114,7 @@ public class SubSyne extends CoSyNe{
 
     @Override
     protected float defAlpha() {
-        return 0.05f;
+        return 0.001f;
     }
 
     @Override
@@ -163,11 +162,24 @@ public class SubSyne extends CoSyNe{
      */
     protected double getFitness() {
         Fitness fit = new Fitness();
+
+
+        int goalsHit = model.goalsHit;
+        if(goalsHit>8){
+            goalsHit = 8;
+        }
+        double house = fit.totalHousesLeft(model);
+
+
+        return -goalsHit + house;
+
+        /*
         return  10 * (
                 (model.getAgents().get(0).goal.goal.getX() - model.getAgents().get(0).getX()) * (model.getAgents().get(0).goal.goal.getX() - model.getAgents().get(0).getX()) +
                 (model.getAgents().get(0).goal.goal.getY() - model.getAgents().get(0).getY()) * (model.getAgents().get(0).goal.goal.getY() - model.getAgents().get(0).getY()))
                 - 1000 *model.goalsHit  +
                 fit.totalFuelBurnt(model);
+                */
     }
 
     @Override
@@ -177,7 +189,7 @@ public class SubSyne extends CoSyNe{
 
     @Override
     protected TransferFunctionType defTransferFunction() {
-        return TransferFunctionType.RECTIFIED;
+        return TransferFunctionType.LINEAR;
     }
 
     @Override

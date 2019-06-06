@@ -59,10 +59,9 @@ public class DijkstraShortestPath extends PathFinder implements Serializable {
         int agentX=agent.getX();
         int agentY=agent.getY();
 
-        st.add(new Node(cells.get(goal.getX()).get(goal.getY()),0,null));
+        st.add(new Node(cells.get(agentX).get(agentY),0,null));
 
-        //cost[agentX][agentY]=0;
-        cost[goal.getX()][goal.getY()]=0;
+        cost[agentX][agentY] = 0;
 
         Node k = st.remove();
         Element e = k.getElement();
@@ -101,15 +100,70 @@ public class DijkstraShortestPath extends PathFinder implements Serializable {
             if(!st.isEmpty()) {
                 k = st.remove();
                 e = k.getElement();
+
             }
 
-        } while (/*!e.equals(cells.get(agentX).get(agentY))&&*/!st.isEmpty());
+        } while (!e.equals(goal)&&!st.isEmpty());
 
         if (!e.equals(goal)){
             //System.out.println("No path found :(");
         } else {
             makePath(k);
         }
+        //printMatrix(cost);
+    }
+
+    public void writeGoalMap(){
+        PriorityQueue<Node> st = new PriorityQueue<>(1,new NodeComparator());
+        int agentX=agent.getX();
+        int agentY=agent.getY();
+
+        st.add(new Node(cells.get(goal.getX()).get(goal.getY()),0,null));
+
+        cost[goal.getX()][goal.getY()] = 0;
+
+        Node k = st.remove();
+        Element e = k.getElement();
+
+        //Continue until goal is reached, or if there are no states nodes to visit.
+        do {
+
+            for (int i = 0; i<4; i++){
+
+                int x = e.getX() + dx[i];
+                int y = e.getY() + dy[i];
+
+
+                if (!agent.checkTile(x, y)){
+                    continue;
+                }
+
+                /*
+                Check is the current action will provide an improvement to the cost matrix
+                 */
+                if (cost[x][y]>cost[e.getX()][e.getY()]+getMoveCost(x,y)){
+
+                    /*
+                    If the cell had been visited before, remove the node corresponding to the cell from the queue
+                     */
+                    if (cost[x][y]!=Integer.MAX_VALUE){
+                        st.remove(new Node(cells.get(x).get(y),expectedCost(x,y),k));
+                    }
+
+                    cost[x][y]=cost[e.getX()][e.getY()]+getMoveCost(x,y);
+
+                    st.add(new Node(cells.get(x).get(y),expectedCost(x,y),k));
+
+
+                }
+            }
+            if(!st.isEmpty()) {
+                k = st.remove();
+                e = k.getElement();
+
+            }
+
+        } while (!st.isEmpty());
         //printMatrix(cost);
     }
 
@@ -281,7 +335,11 @@ public class DijkstraShortestPath extends PathFinder implements Serializable {
         for (int i=0; i<m[0].length; i++){
             System.out.print("| ");
             for (int j=0; j<m.length; j++){
-                System.out.print(m[j][m[0].length-i-1]+" ");
+                if(agent.getX() == i && agent.getY() == j){
+                    System.out.print("A ");
+                }else {
+                    System.out.print(m[j][m[0].length - i - 1] + " ");
+                }
             }
             System.out.println("|");
         }

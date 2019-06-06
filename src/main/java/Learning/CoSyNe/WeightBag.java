@@ -31,6 +31,11 @@ public class WeightBag {
         return activeWeight.getWeight();
     }
 
+    public Weight bestWeight(){
+        Collections.sort(sortedWeights);
+        return sortedWeights.get(0).getWeight();
+    }
+
     /**
      * Update the fitness of the current weight
      * @param f

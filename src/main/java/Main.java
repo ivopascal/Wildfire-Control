@@ -10,6 +10,9 @@ import Learning.HumanController;
 import Model.Simulation;
 import View.MainFrame;
 
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
+
 // Roel:
 
 
@@ -41,6 +44,12 @@ public class Main {
 			f.simulationPanel.addKeyListener(hc);
 			hc.simulationPanel = f.simulationPanel;
 		} else if (args.length > 0 && args[0].equals("sub")){
+			try {
+				PrintStream fileOut = new PrintStream("./Astar.txt");
+				System.setOut(fileOut);
+			} catch (FileNotFoundException e){
+				e.printStackTrace();
+			}
 			new SubGoalLearning();
 		} else if (args.length > 0 && args[0].equals("subSyne")){
 			new SubSyne();
@@ -48,6 +57,12 @@ public class Main {
 		else if (args.length > 0 && args[0].equals("HRL")) {
 			new ActionLearner();
 		}else if(args.length > 0 && args[0].equals("hybrid")){
+			try {
+				PrintStream fileOut = new PrintStream("./hybrid.txt");
+				System.setOut(fileOut);
+			} catch (FileNotFoundException e){
+				e.printStackTrace();
+			}
 			new HybridRL();
 		} else {
 			use_gui = true;

@@ -20,13 +20,13 @@ public class Tree extends Element
 	public void initializeParameters()
 	{
 		this.type = "Tree";
-		this.r = 3;
+		this.r = 1;
 		this.isBurnable = true;
 		this.color = DARK_GREEN;
 		this.burnIntensity = 8;
 		this.ignitionThreshold = 80;
 		this.fuel = starting_fuel = 50;
-		this.moveSpeed = 1;
+		this.moveSpeed = 3;
 		this.clearCost = 5;
 	}
 }
