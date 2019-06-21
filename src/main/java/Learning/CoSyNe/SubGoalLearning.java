@@ -61,15 +61,18 @@ public class SubGoalLearning extends CoSyNe  {
         //System.out.println("Mean performance: " + mean_perfomance + " , " + meanGoalFitness/defGenerationSize());
         //System.out.println("Mean confidence: " + mean_confidence / conf_counter);
 
-        /*
+
         Collections.sort(goalFitnessess);
+
         double parentMean = 0;
-        for(int i=0; i<goalFitnessess.size()/(defBagSize()-defN_children()); i++){
+
+        for(int i=0; i<goalFitnessess.size(); i++){
             parentMean += goalFitnessess.get(i);
         }
-        parentMean/=(goalFitnessess.size()/(defBagSize()-defN_children()));
-        System.out.println(parentMean);
-        */
+        parentMean/=(goalFitnessess.size());
+
+        System.out.print(goalFitnessess.get(0) + "\t");
+        System.out.print(parentMean + "\t");
         goalFitnessess = null;
 
         testBest();

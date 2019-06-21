@@ -32,6 +32,16 @@ public class GoalLearner extends SubGoalLearning {
         return dist;
     }
 
+    public double[] generateBest(Simulation model){
+        createBest();    //renew our MLP
+        double[] dist = model.getSubGoals();
+        for(int i = 0; i < dist.length; i++){
+            dist[i] = determineOffset(i, dist.length);
+        }
+        //System.out.println(Arrays.toString(dist));
+        return dist;
+    }
+
     @Override
     public void createBest(){
         super.createBest();

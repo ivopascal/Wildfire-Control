@@ -81,15 +81,16 @@ public class ActionLearner extends SubSyne {
         //System.out.println("Best performance: " + best_performance + " , " + bestGoalFitness);
         //System.out.println("Mean performance: " + mean_perfomance + " , " + meanGoalFitness/defGenerationSize());
         //System.out.println("Mean confidence: " + mean_confidence / conf_counter);
-        /*
+
         double parentMean = 0;
         Collections.sort(goalFitnessess);
         for(int i=0; i<goalFitnessess.size(); i++){
             parentMean += goalFitnessess.get(i);
         }
         parentMean/=(goalFitnessess.size());
-        System.out.println(parentMean);
-        */
+        System.out.print(goalFitnessess.get(0) + "\t");
+        System.out.print(parentMean + "\t");
+
         goalFitnessess = null;
         bestGoalFitness = null;
         meanGoalFitness = null;
@@ -99,12 +100,11 @@ public class ActionLearner extends SubSyne {
     @Override
     protected void createBest() {
         super.createBest();
-        goalLearner.createBest();
     }
 
     @Override
     protected void printBest(){
-        double[] dist = goalLearner.generateGoals(model);
+        double[] dist = goalLearner.generateBest(model);
         model.setSubGoals(dist);
         model.applySubgoals();
         model.start();

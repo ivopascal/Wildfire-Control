@@ -32,8 +32,12 @@ public class WeightBag {
     }
 
     public Weight bestWeight(){
-        Collections.sort(sortedWeights);
-        return sortedWeights.get(0).getWeight();
+        Collections.sort(weights);
+        int i =0;
+        while(weights.get(i).no_trials){
+            i++;
+        }
+        return weights.get(i).getWeight();
     }
 
     /**

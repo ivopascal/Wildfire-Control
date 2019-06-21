@@ -57,8 +57,10 @@ public class SubSyne extends CoSyNe{
 
     @Override
     protected void performAction(int action, Agent a) {
-        if(model.getAllCells().get(a.getX()).get(a.getY()).getType() == "Grass"
-                || model.getAllCells().get(a.getX()).get(a.getY()).getType() == "Tree"
+        if((model.getAllCells().get(a.getX()).get(a.getY()).getType() == "Grass"
+                || model.getAllCells().get(a.getX()).get(a.getY()).getType() == "Tree")
+                && model.goalsHit != 0
+
                 ){ //every other action is a dig
             a.makeDirt();
         }else {
@@ -114,7 +116,7 @@ public class SubSyne extends CoSyNe{
 
     @Override
     protected float defAlpha() {
-        return 0.001f;
+        return 0.1f;
     }
 
     @Override
@@ -171,7 +173,7 @@ public class SubSyne extends CoSyNe{
         double house = fit.totalHousesLeft(model);
 
 
-        return -goalsHit + house;
+        return house + goalsHit/16;
 
         /*
         return  10 * (
