@@ -8,7 +8,7 @@ public class WeightBag {
 
     private List<WeightPair> weights;
     private List<WeightPair> sortedWeights;
-    private WeightPair activeWeight;
+    public WeightPair activeWeight;
     private float alpha;
     private int weightSpread;
     public WeightBag(int size, float alpha, int weightSpread){
@@ -21,17 +21,36 @@ public class WeightBag {
         }
     }
 
+    public Weight randomWeight(boolean noDropConnect){
+        if(noDropConnect) {
+            Random rng = new Random();
+            activeWeight = weights.get(rng.nextInt(weights.size()));
+            return activeWeight.getWeight();
+        }else{
+            return randomWeight();
+        }
+    }
+
     /**
      * Pull a random weight from the bag
      * @return
      */
     public Weight randomWeight(){
         Random rng = new Random();
+        if(rng.nextDouble() < 0.2){
+            activeWeight = null;
+            return new Weight(0);
+        }
         activeWeight = weights.get(rng.nextInt(weights.size()));
         return activeWeight.getWeight();
     }
 
     public Weight bestWeight(){
+        Random rng = new Random();
+        if(rng.nextDouble() < 0.2){
+            activeWeight = null;
+            return new Weight(0);
+        }
         Collections.sort(weights);
         int i =0;
         while(weights.get(i).no_trials){
@@ -45,6 +64,9 @@ public class WeightBag {
      * @param f
      */
     public void updateFitness(double f){
+        if(activeWeight == null){
+            return;
+        }
         if(activeWeight.no_trials){
             activeWeight.updateFitness(f);
             sortedWeights.add(activeWeight);

@@ -64,7 +64,7 @@ public class HybridRL extends ActionLearner {
             }
         }
 
-        certaintyWeight = hybridBags[16].randomWeight();    //Weight for certainty, rest of list is obsolete
+        certaintyWeight = hybridBags[16].randomWeight(true);    //Weight for certainty, rest of list is obsolete
 
     }
 
